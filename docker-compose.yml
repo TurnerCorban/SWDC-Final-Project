@@ -9,8 +9,13 @@ services:
       # This connects the port of the computer to the port of the container--so when you
       # hit port 8080 in the browser, you will be directed to the container's 8080 port.
       # Syntax--> ContainerPort:RunnerPort (Laptop)
+    depends_on:
+      - mysql
     environment:
       # You can pass database URLs or other Spring properties here if needed later
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/maintenance_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_PROFILES_ACTIVE=dev
 
   frontend-user:
@@ -25,3 +30,12 @@ services:
     depends_on:
       - backend
       # depends_on ensures the listed services start before the current service.
+
+  mysql:
+    image: mysql:8
+    container_name: maintenance-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: maintenance_db
+    ports:
+      - "3306:3306"
