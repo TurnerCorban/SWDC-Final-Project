@@ -8,6 +8,7 @@ import org.SWDC.entity.Role;
 import org.SWDC.entity.User;
 import org.SWDC.repo.UserRepo;
 import org.SWDC.responses.AuthUserResponse;
+import org.SWDC.responses.UserSummaryResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -16,10 +17,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -77,6 +75,15 @@ public class AuthenticationController {
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
 
         return AuthUserResponse.from(user);
+    }
+
+    @GetMapping("/admins")
+    public List<UserSummaryResponse> getAdmins() {
+
+        return userRepo.findAll().stream().filter(u -> u.getRole() == Role.ADMIN)
+                .map(UserSummaryResponse::from)
+                .toList();
+
     }
 
 }

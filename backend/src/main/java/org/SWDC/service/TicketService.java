@@ -7,6 +7,7 @@ import org.SWDC.repo.TicketRepo;
 import org.SWDC.repo.UserRepo;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 @Service
 public class TicketService {
@@ -53,6 +54,27 @@ public class TicketService {
         User worker = userRepo.findById(workerId).orElseThrow();
 
         ticket.setWorker(worker);
+
+        // Set status to in progress
+        ticket.setStatus(Status.IN_PROGRESS);
+
+        return ticketRepo.save(ticket);
+
+    }
+
+    // Updates the status of an individual ticket
+    public Ticket updateStatus(Integer ticketId, String status) {
+
+        Ticket ticket = ticketRepo.findById(ticketId).orElseThrow();
+
+        ticket.setStatus(Status.valueOf(status));
+
+        if (ticket.getStatus() == Status.COMPLETE) {
+
+            ticket.setTimeCompleted(LocalDateTime.now());
+
+        }
+
         return ticketRepo.save(ticket);
 
     }
