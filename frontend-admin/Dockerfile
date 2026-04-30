@@ -19,7 +19,7 @@ COPY . .
 ENV PATH /app/node_modules/.bin:$PATH
 
 # 6. Expose Vite's default port
-EXPOSE 5173
+EXPOSE 80
 
 # 7. Start Vite and expose it to the network so your browser can see it
 CMD ["npm", "run", "dev", "--", "--host"]

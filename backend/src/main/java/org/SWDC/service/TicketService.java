@@ -8,7 +8,6 @@ import org.SWDC.repo.UserRepo;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
 @Service
 public class TicketService {
 
@@ -25,7 +24,7 @@ public class TicketService {
     // Creates a ticket
     public Ticket create(Ticket ticket, String username) {
 
-        User user = userRepo.findByUsername(username);
+        User user = userRepo.findByUsername(username).orElseThrow();
         ticket.setUser(user);
         ticket.setStatus(Status.PENDING);
         return ticketRepo.save(ticket);
@@ -35,7 +34,7 @@ public class TicketService {
     // Retrieves data for current logged-in user's tickets
     public List<Ticket> getCurrent(String username) {
 
-        User user = userRepo.findByUsername(username);
+        User user = userRepo.findByUsername(username).orElseThrow();
         return ticketRepo.findByUser(user);
 
     }

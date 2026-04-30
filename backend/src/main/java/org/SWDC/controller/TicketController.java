@@ -1,6 +1,7 @@
 package org.SWDC.controller;
 
 import org.SWDC.entity.Ticket;
+import org.SWDC.responses.TicketResponse;
 import org.SWDC.service.TicketService;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,17 +22,18 @@ public class TicketController {
 
     // Use principal to get current user
     @PostMapping
-    public Ticket create(@RequestBody Ticket ticket, Principal principal) {
+    public TicketResponse create(@RequestBody Ticket ticket, Principal principal) {
 
-        return ticketService.create(ticket, principal.getName());
+        return TicketResponse.from(ticketService.create(ticket, principal.getName()));
 
     }
 
     @GetMapping("/current")
-    public List<Ticket> mine(Principal principal) {
+    public List<TicketResponse> mine(Principal principal) {
 
-        return ticketService.getCurrent(principal.getName());
-
+        return ticketService.getCurrent(principal.getName()).stream()
+                .map(TicketResponse::from)
+                .toList();
     }
 
 }

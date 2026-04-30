@@ -3,7 +3,6 @@ package org.SWDC.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "tickets")
 

@@ -1,6 +1,6 @@
 package org.SWDC.controller;
 
-import org.SWDC.entity.Ticket;
+import org.SWDC.responses.TicketResponse;
 import org.SWDC.service.TicketService;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,16 +19,18 @@ public class AdminController {
     }
 
     @GetMapping("/tickets")
-    public List<Ticket> allTickets() {
+    public List<TicketResponse> allTickets() {
 
-        return ticketService.getAll();
+        return ticketService.getAll().stream()
+                .map(TicketResponse::from)
+                .toList();
 
     }
 
     @PutMapping("/assign")
-    public Ticket assign(@RequestParam Integer ticketId, @RequestParam Integer workerId) {
+    public TicketResponse assign(@RequestParam Integer ticketId, @RequestParam Integer workerId) {
 
-        return ticketService.assignWorker(ticketId, workerId);
+        return TicketResponse.from(ticketService.assignWorker(ticketId, workerId));
 
     }
 
