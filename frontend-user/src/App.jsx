@@ -13,7 +13,7 @@ export default function App() {
     const [ticketForm, setTicketForm] = useState({location: '', description: ''})
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
-    const [user, setUser] = useState(null)
+    const [setUser] = useState(null)
     const [ticketSearch, setTicketSearch] = useState('')
     const [ticketFilters, setTicketFilters] = useState({
         inProgress: false,
@@ -330,7 +330,9 @@ export default function App() {
             return (
                 <div className="dashboard-view">
                     <header className="user-header">
-                        <h1>My Tickets</h1>
+                        <div>
+                            <h1>Dashboard</h1>
+                        </div>
                         <div>
                             <button onClick={logout}>Logout</button>
                         </div>
@@ -338,6 +340,7 @@ export default function App() {
 
                     <section className="ticket-panel">
                         <div className="ticket-panel-actions">
+                            <h1>My Tickets</h1>
                             <button onClick={() => setView('createTicket')}>
                                 Submit Ticket
                             </button>
@@ -345,10 +348,10 @@ export default function App() {
 
                         <div className="ticket-controls">
                             <label className="ticket-search">
-                                <span>Search tickets</span>
                                 <input
                                     value={ticketSearch}
                                     onChange={(event) => setTicketSearch(event.target.value)}
+                                    placeholder="Search Tickets"
                                 />
                             </label>
 

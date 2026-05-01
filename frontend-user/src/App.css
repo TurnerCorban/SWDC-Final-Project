@@ -160,7 +160,25 @@
 
 .ticket-panel-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+    margin: 0;
+    padding: 14px;
+    background: #fff;
+    border: 0;
+    border-radius: 8px;
+    box-sizing: border-box;
+    text-align: left;
+    box-shadow: 0 10px 20px rgba(20, 28, 45, 0.06);
+}
+
+.ticket-panel-actions h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.2;
+    color: #172033;
 }
 
 .ticket-table {
