@@ -16,6 +16,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [admin, setAdmin] = useState(null)
   const [admins, setAdmins] = useState([])
+  const [users, setUsers] = useState([])
   const [tickets, setTickets] = useState([])
   const [loadingTickets, setLoadingTickets] = useState(false)
 
@@ -61,6 +62,17 @@ function App() {
 
   }
 
+    async function fetchUsers() {
+
+        const res = await fetch(`${API_URL}/admin/users`, {
+            credentials: "include",
+        })
+
+        if (res.ok) {
+            setUsers(await res.json())
+        }
+    }
+
   async function fetchAdmins() {
 
       try {
@@ -103,12 +115,34 @@ function App() {
 
   }
 
+    async function updateUserRole(userId, role) {
+
+        await fetch(`${API_URL}/admin/users/${userId}/role`, {
+
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(role),
+
+        })
+
+        setUsers(prev =>
+            prev.map(u =>
+                u.id === userId ? { ...u, role } : u
+            )
+        )
+
+        await fetchUsers()
+
+    }
+
   useEffect(() => {
 
       if (admin) {
 
-          fetchTickets();
-          fetchAdmins();
+          fetchTickets()
+          fetchAdmins()
+          fetchUsers()
 
       }
 
@@ -188,10 +222,58 @@ function App() {
                         </table>
                     )}
 
-                    <button onClick={fetchTickets}>Refresh</button>
+                    <h2>Users</h2>
+
+                    <table className="ticket-table">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        {users.length === 0 ? (
+                            <tr>
+                                <td colSpan="5">No users found.</td>
+                            </tr>
+                        ) : (
+                            users.map((u) => (
+                                <tr key={u.id}>
+                                    <td>{u.id}</td>
+                                    <td>{u.username}</td>
+                                    <td>{u.email}</td>
+                                    <td>{u.phoneNumber}</td>
+
+                                    <td>
+                                        <select
+                                            value={u.role}
+                                            onChange={(e) => updateUserRole(u.id, e.target.value)}
+                                        >
+                                            <option value="USER">USER</option>
+                                            <option value="ADMIN">ADMIN</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                        </tbody>
+                    </table>
+
+                    <button onClick={refreshAll}>Refresh</button>
                 </section>
             </main>
         );
+    }
+
+    function refreshAll() {
+
+        fetchTickets()
+        fetchUsers()
+
     }
 
   return (
