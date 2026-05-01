@@ -32,6 +32,22 @@ export const AuthenticationService = {
         if (!res.ok) throw new Error('Registration failed')
             return res.json()
 
+    },
+
+    async getMe() {
+        const res = await fetch(`${API_URL}/auth/me`, {
+            credentials: 'include',
+        })
+
+        if (!res.ok) throw new Error('Not authenticated')
+        return res.json()
+    },
+
+    async logout() {
+        await fetch(`${API_URL}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include',
+        })
     }
 
 }

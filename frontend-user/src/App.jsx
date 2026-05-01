@@ -1,280 +1,292 @@
-import { useState, useEffect, useMemo } from 'react'
+import {useState, useEffect, useMemo} from 'react'
 import './App.css'
-import { AuthenticationService } from './services/AuthenticationService'
-import { TicketService } from './services/TicketService'
+import {AuthenticationService} from './services/AuthenticationService'
+import {TicketService} from './services/TicketService'
 
 const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
 export default function App() {
-  const [view, setView] = useState('login')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [tickets, setTickets] = useState([])
-  const [ticketForm, setTicketForm] = useState({location: '', description: ''})
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState(null)
-  const [ticketSearch, setTicketSearch] = useState('')
-  const [ticketFilters, setTicketFilters] = useState({
-      inProgress: false,
-      assigned: false,
-      completed: false,
-  })
-  const [ticketSort, setTicketSort] = useState({ key: 'id', direction: 'asc' })
+    const [view, setView] = useState('login')
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
+    const [tickets, setTickets] = useState([])
+    const [ticketForm, setTicketForm] = useState({location: '', description: ''})
+    const [error, setError] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [user, setUser] = useState(null)
+    const [ticketSearch, setTicketSearch] = useState('')
+    const [ticketFilters, setTicketFilters] = useState({
+        inProgress: false,
+        assigned: false,
+        completed: false,
+    })
+    const [ticketSort, setTicketSort] = useState({key: 'id', direction: 'asc'})
 
-  const ticketColumns = [
-      { key: 'id', label: 'ID' },
-      { key: 'location', label: 'Location' },
-      { key: 'description', label: 'Description' },
-      { key: 'status', label: 'Status' },
-      { key: 'worker', label: 'Assigned To' },
-      { key: 'timeSubmitted', label: 'Submitted' },
-      { key: 'timeCompleted', label: 'Completed' },
-  ]
+    const ticketColumns = [
+        {key: 'id', label: 'ID'},
+        {key: 'location', label: 'Location'},
+        {key: 'description', label: 'Description'},
+        {key: 'status', label: 'Status'},
+        {key: 'worker', label: 'Assigned To'},
+        {key: 'timeSubmitted', label: 'Submitted'},
+        {key: 'timeCompleted', label: 'Completed'},
+    ]
 
-  function getTicketSortValue(ticket, key) {
-      if (key === 'worker') return ticket.worker?.username ?? ''
-      if (key === 'id') return Number(ticket.id) || 0
-      return ticket[key] ?? ''
-  }
-
-  function matchesStatus(ticket, status) {
-      return String(ticket.status ?? '').toUpperCase().replace(/\s+/g, '_') === status
-  }
-
-  const visibleTickets = useMemo(() => {
-      const search = ticketSearch.trim().toLowerCase()
-
-      return tickets
-          .filter((ticket) => {
-              if (ticketFilters.inProgress && !matchesStatus(ticket, 'IN_PROGRESS')) {
-                  return false
-              }
-
-              if (ticketFilters.assigned && !ticket.worker) {
-                  return false
-              }
-
-              if (ticketFilters.completed && !ticket.timeCompleted && !matchesStatus(ticket, 'COMPLETED')) {
-                  return false
-              }
-
-              if (!search) {
-                  return true
-              }
-
-              return [
-                  ticket.id,
-                  ticket.location,
-                  ticket.description,
-                  ticket.status,
-                  ticket.worker?.username,
-                  ticket.timeSubmitted,
-                  ticket.timeCompleted,
-              ]
-                  .some((value) => String(value ?? '').toLowerCase().includes(search))
-          })
-          .sort((a, b) => {
-              const aValue = getTicketSortValue(a, ticketSort.key)
-              const bValue = getTicketSortValue(b, ticketSort.key)
-
-              if (typeof aValue === 'number' && typeof bValue === 'number') {
-                  return ticketSort.direction === 'asc' ? aValue - bValue : bValue - aValue
-              }
-
-              return ticketSort.direction === 'asc'
-                  ? String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' })
-                  : String(bValue).localeCompare(String(aValue), undefined, { numeric: true, sensitivity: 'base' })
-          })
-  }, [tickets, ticketFilters, ticketSearch, ticketSort])
-
-  function updateTicketFilter(filterName) {
-      setTicketFilters((current) => ({
-          ...current,
-          [filterName]: !current[filterName],
-      }))
-  }
-
-  function updateTicketSort(key) {
-      setTicketSort((current) => ({
-          key,
-          direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
-      }))
-  }
-
-  function getSortLabel(key) {
-      if (ticketSort.key !== key) return ''
-      return ticketSort.direction === 'asc' ? ' sorted ascending' : ' sorted descending'
-  }
-
-  function formatTicketTime(value) {
-      if (!value) return '-'
-
-      const rawValue = String(value)
-      const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(rawValue)
-      const normalizedValue = hasTimeZone ? rawValue : `${rawValue}Z`
-      const date = new Date(normalizedValue)
-
-      if (Number.isNaN(date.getTime())) {
-          return value
-      }
-
-      const parts = new Intl.DateTimeFormat('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour12: true,
-      })
-          .formatToParts(date)
-          .reduce((current, part) => {
-              current[part.type] = part.value
-              return current
-          }, {})
-
-      return `${parts.hour}:${parts.minute} ${parts.dayPeriod} ${parts.day}/${parts.month}/${parts.year}`
-  }
-
-  function formatStatus(status) {
-      if (!status) return 'Not Available'
-      return status.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-  }
-
-  async function handleLogin(event) {
-    event.preventDefault()
-    setError('')
-    setLoading(true)
-
-    try {
-      if (!API_URL) {
-        throw new Error('Missing VITE_API_URL')
-      }
-
-      const user = await AuthenticationService.login(username, password)
-      setUser(user);
-      setView('dashboard');
-      setUsername('');
-      setPassword('');
-
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+    function getTicketSortValue(ticket, key) {
+        if (key === 'worker') return ticket.worker?.username ?? ''
+        if (key === 'id') return Number(ticket.id) || 0
+        return ticket[key] ?? ''
     }
-  }
 
-  const [form, setForm] = useState({
+    function matchesStatus(ticket, status) {
+        return String(ticket.status ?? '').toUpperCase().replace(/\s+/g, '_') === status
+    }
 
-      username: '',
-      password: '',
-      phoneNumber: '',
-      firstName: '',
-      lastName: '',
-      email: '',
-      address: ''
+    const visibleTickets = useMemo(() => {
+        const search = ticketSearch.trim().toLowerCase()
 
-  })
+        return tickets
+            .filter((ticket) => {
+                if (ticketFilters.inProgress && !matchesStatus(ticket, 'IN_PROGRESS')) {
+                    return false
+                }
 
-  function updateTicketForm(event) {
+                if (ticketFilters.assigned && !ticket.worker) {
+                    return false
+                }
 
-      setTicketForm({
+                if (ticketFilters.completed && !ticket.timeCompleted && !matchesStatus(ticket, 'COMPLETED')) {
+                    return false
+                }
 
-          ...ticketForm,
-          [event.target.name]: event.target.value
+                if (!search) {
+                    return true
+                }
 
-      })
+                return [
+                    ticket.id,
+                    ticket.location,
+                    ticket.description,
+                    ticket.status,
+                    ticket.worker?.username,
+                    ticket.timeSubmitted,
+                    ticket.timeCompleted,
+                ]
+                    .some((value) => String(value ?? '').toLowerCase().includes(search))
+            })
+            .sort((a, b) => {
+                const aValue = getTicketSortValue(a, ticketSort.key)
+                const bValue = getTicketSortValue(b, ticketSort.key)
 
-  }
+                if (typeof aValue === 'number' && typeof bValue === 'number') {
+                    return ticketSort.direction === 'asc' ? aValue - bValue : bValue - aValue
+                }
 
-  async function submitTicket(event) {
+                return ticketSort.direction === 'asc'
+                    ? String(aValue).localeCompare(String(bValue), undefined, {numeric: true, sensitivity: 'base'})
+                    : String(bValue).localeCompare(String(aValue), undefined, {numeric: true, sensitivity: 'base'})
+            })
+    }, [tickets, ticketFilters, ticketSearch, ticketSort])
 
-      event.preventDefault()
-      setError('')
-      setLoading(true)
+    function updateTicketFilter(filterName) {
+        setTicketFilters((current) => ({
+            ...current,
+            [filterName]: !current[filterName],
+        }))
+    }
 
-      try {
+    function updateTicketSort(key) {
+        setTicketSort((current) => ({
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+        }))
+    }
 
-          await TicketService.createTicket(ticketForm)
-          setTicketForm({ location: '', description: '' })
-          setView('dashboard')
-          fetchTickets()
+    function getSortLabel(key) {
+        if (ticketSort.key !== key) return ''
+        return ticketSort.direction === 'asc' ? ' sorted ascending' : ' sorted descending'
+    }
 
-      } catch(err) {
+    function formatTicketTime(value) {
+        if (!value) return '-'
 
-          setError(err.message)
+        const rawValue = String(value)
+        const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(rawValue)
+        const normalizedValue = hasTimeZone ? rawValue : `${rawValue}Z`
+        const date = new Date(normalizedValue)
 
-      } finally {
+        if (Number.isNaN(date.getTime())) {
+            return value
+        }
 
-          setLoading(false)
+        const parts = new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour12: true,
+        })
+            .formatToParts(date)
+            .reduce((current, part) => {
+                current[part.type] = part.value
+                return current
+            }, {})
 
-      }
+        return `${parts.hour}:${parts.minute} ${parts.dayPeriod} ${parts.day}/${parts.month}/${parts.year}`
+    }
 
-  }
+    function formatStatus(status) {
+        if (!status) return 'Not Available'
+        return status.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    }
 
-  function updateField(event) {
+    async function handleLogin(event) {
+        event.preventDefault()
+        setError('')
+        setLoading(true)
 
-      setForm({ ...form, [event.target.name]: event.target.value })
+        try {
+            if (!API_URL) {
+                throw new Error('Missing VITE_API_URL')
+            }
 
-  }
+            const user = await AuthenticationService.login(username, password)
+            setUser(user);
+            setView('dashboard');
+            setUsername('');
+            setPassword('');
+
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const [form, setForm] = useState({
+
+        username: '',
+        password: '',
+        phoneNumber: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        address: ''
+
+    })
+
+    function updateTicketForm(event) {
+
+        setTicketForm({
+
+            ...ticketForm,
+            [event.target.name]: event.target.value
+
+        })
+
+    }
+
+    async function submitTicket(event) {
+
+        event.preventDefault()
+        setError('')
+        setLoading(true)
+
+        try {
+
+            await TicketService.createTicket(ticketForm)
+            setTicketForm({location: '', description: ''})
+            setView('dashboard')
+            fetchTickets()
+
+        } catch (err) {
+
+            setError(err.message)
+
+        } finally {
+
+            setLoading(false)
+
+        }
+
+    }
+
+    function updateField(event) {
+
+        setForm({...form, [event.target.name]: event.target.value})
+
+    }
 
 
+    async function register(event) {
 
-  async function register(event) {
+        event.preventDefault()
+        setError('')
+        setLoading(true)
 
-      event.preventDefault()
-      setError('')
-      setLoading(true)
+        try {
 
-      try {
+            await AuthenticationService.register(form)
+            setView('login')
 
-          await AuthenticationService.register(form)
-          setView('login')
+        } catch (err) {
 
-      } catch (err) {
+            setError(err.message)
 
-          setError(err.message)
+        } finally {
 
-      } finally {
+            setLoading(false)
 
-          setLoading(false)
+        }
 
-      }
+    }
 
-  }
+    async function fetchTickets() {
 
-  async function fetchTickets() {
+        try {
 
-      try {
+            const data = await TicketService.getMyTickets()
+            setTickets(data)
 
-          const data = await TicketService.getMyTickets()
-          setTickets(data)
+        } catch (err) {
 
-      } catch (err) {
+            setError(err.message)
 
-          setError(err.message)
+        }
 
-      }
+    }
 
-  }
+    useEffect(() => {
 
-  useEffect(() => {
+        if (view === 'dashboard') {
 
-      if (view === 'dashboard') {
+            fetchTickets()
 
-          fetchTickets()
+        }
 
-      }
+    }, [view])
 
-  }, [view])
+    useEffect(() => {
+        async function checkSession() {
+            try {
+                const user = await AuthenticationService.getMe()
+                setUser(user)
+                setView('dashboard')
+            } catch {
+                setView('login')
+            }
+        }
 
-  function logout() {
+        checkSession()
+    }, [])
 
-      setUser(null)
-      setView('login')
-      setTickets([])
-
-  }
+    async function logout() {
+        await AuthenticationService.logout()
+        setUser(null)
+        setView('login')
+        setTickets([])
+    }
 
     function renderView() {
         if (view === 'login') {
@@ -385,7 +397,8 @@ export default function App() {
                                             aria-label={`Sort by ${column.label}${getSortLabel(column.key)}`}
                                         >
                                             {column.label}
-                                            <span className={ticketSort.key === column.key ? `sort-icon ${ticketSort.direction}` : 'sort-icon'} />
+                                            <span
+                                                className={ticketSort.key === column.key ? `sort-icon ${ticketSort.direction}` : 'sort-icon'}/>
                                         </button>
                                     </th>
                                 ))}

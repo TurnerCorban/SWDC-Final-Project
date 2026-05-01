@@ -26,7 +26,7 @@ public class WebSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/register", "/auth/login", "/auth/me").permitAll()
+                        .requestMatchers("/auth/register", "/auth/login", "/auth/me", "/auth/logout").permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/tickets/**", "/api/tickets/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
