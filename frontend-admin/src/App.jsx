@@ -142,24 +142,21 @@ function App() {
     }
 
     async function updateUserRole(userId, role) {
+        await fetch(`${API_URL}/auth/me`, { credentials: 'include' })
+        const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/)
+        const csrfToken = match ? decodeURIComponent(match[1]) : null
 
         await fetch(`${API_URL}/admin/users/${userId}/role`, {
-
             method: "PUT",
-            headers: {"Content-Type": "application/json"},
+            headers: {
+                "Content-Type": "application/json",
+                "X-XSRF-TOKEN": csrfToken,
+            },
             credentials: "include",
             body: JSON.stringify(role),
-
         })
 
-        setUsers(prev =>
-            prev.map(u =>
-                u.id === userId ? {...u, role} : u
-            )
-        )
-
         await fetchUsers()
-
     }
 
     async function deleteUser(userId) {
