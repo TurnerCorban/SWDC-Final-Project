@@ -13,7 +13,7 @@ export default function App() {
     const [ticketForm, setTicketForm] = useState({location: '', description: ''})
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
-    const [setUser] = useState(null)
+    const [user, setUser] = useState(null)
     const [ticketSearch, setTicketSearch] = useState('')
     const [ticketFilters, setTicketFilters] = useState({
         inProgress: false,
