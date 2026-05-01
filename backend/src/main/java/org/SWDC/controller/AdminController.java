@@ -1,12 +1,18 @@
 package org.SWDC.controller;
 
 import org.SWDC.entity.Role;
+import org.SWDC.entity.Ticket;
 import org.SWDC.entity.User;
+import org.SWDC.repo.TicketRepo;
 import org.SWDC.repo.UserRepo;
 import org.SWDC.responses.TicketResponse;
 import org.SWDC.responses.UserSummaryResponse;
 import org.SWDC.service.TicketService;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -16,11 +22,13 @@ public class AdminController {
 
     private final TicketService ticketService;
     private final UserRepo userRepo;
+    private final TicketRepo ticketRepo;
 
-    public AdminController(TicketService ticketService, UserRepo userRepo) {
+    public AdminController(TicketService ticketService, UserRepo userRepo, TicketRepo ticketRepo) {
 
         this.ticketService = ticketService;
         this.userRepo = userRepo;
+        this.ticketRepo = ticketRepo;
     }
 
     @GetMapping("/tickets")
@@ -61,6 +69,29 @@ public class AdminController {
         userRepo.save(user);
 
         return UserSummaryResponse.from(user);
+    }
+
+    @DeleteMapping("/users/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void deleteUser(@PathVariable Integer userId, Authentication authentication) {
+
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (authentication != null && user.getUsername().equals(authentication.getName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete the signed-in admin");
+        }
+
+        for (Ticket ticket : ticketRepo.findByUser(user)) {
+            ticket.setUser(null);
+        }
+
+        for (Ticket ticket : ticketRepo.findByWorker(user)) {
+            ticket.setWorker(null);
+        }
+
+        userRepo.delete(user);
     }
 
 }

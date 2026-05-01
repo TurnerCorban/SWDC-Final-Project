@@ -86,4 +86,19 @@ public class AuthenticationController {
 
     }
 
+    @GetMapping("/me")
+    public AuthUserResponse me(HttpServletRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+
+        String username = (String) auth.getPrincipal();
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        return AuthUserResponse.from(user);
+    }
+
 }

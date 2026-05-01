@@ -9,4 +9,6 @@ public interface TicketRepo extends JpaRepository<Ticket,Integer> {
 
     List<Ticket> findByUser(User user);
 
+    List<Ticket> findByWorker(User worker);
+
 }

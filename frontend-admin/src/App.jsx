@@ -1,66 +1,92 @@
-import { useState, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import {useState, useEffect} from 'react'
 import './App.css'
 
-import { AuthenticationService } from './services/AuthenticationService'
-import { TicketService } from './services/TicketService'
+import {AuthenticationService} from './services/AuthenticationService'
+import {TicketService} from './services/TicketService'
 
 const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
 function App() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [admin, setAdmin] = useState(null)
-  const [admins, setAdmins] = useState([])
-  const [users, setUsers] = useState([])
-  const [tickets, setTickets] = useState([])
-  const [loadingTickets, setLoadingTickets] = useState(false)
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
+    const [error, setError] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [admin, setAdmin] = useState(null)
+    const [admins, setAdmins] = useState([])
+    const [users, setUsers] = useState([])
+    const [tickets, setTickets] = useState([])
+    const [loadingTickets, setLoadingTickets] = useState(false)
 
-  async function handleLogin(event) {
-    event.preventDefault()
-    setError('')
-    setLoading(true)
+    function formatTicketTime(value) {
+        if (!value) return '-'
 
-    try {
-      const user = await AuthenticationService.login(username, password)
+        const rawValue = String(value)
+        const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(rawValue)
+        const normalizedValue = hasTimeZone ? rawValue : `${rawValue}Z`
+        const date = new Date(normalizedValue)
 
-      if (user.role !== 'ADMIN') {
-        throw new Error('Admin access required')
-      }
+        if (Number.isNaN(date.getTime())) {
+            return value
+        }
 
-      setAdmin(user)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+        const parts = new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour12: true,
+        })
+            .formatToParts(date)
+            .reduce((current, part) => {
+                current[part.type] = part.value
+                return current
+            }, {})
+
+        return `${parts.hour}:${parts.minute} ${parts.dayPeriod} ${parts.day}/${parts.month}/${parts.year}`
     }
-  }
 
-  async function fetchTickets() {
+    async function handleLogin(event) {
+        event.preventDefault()
+        setError('')
+        setLoading(true)
 
-      setLoadingTickets(true);
-      setError("");
+        try {
+            const user = await AuthenticationService.login(username, password)
 
-      try {
+            if (user.role !== 'ADMIN') {
+                throw new Error('Admin access required')
+            }
 
-          const data = await TicketService.getAllTickets()
-          setTickets(data)
+            setAdmin(user)
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setLoading(false)
+        }
+    }
 
-      } catch (err) {
+    async function fetchTickets() {
 
-          setError(err.message);
+        setLoadingTickets(true);
+        setError("");
 
-      } finally {
+        try {
 
-          setLoadingTickets(false);
+            const data = await TicketService.getAllTickets()
+            setTickets(data)
 
-      }
+        } catch (err) {
 
-  }
+            setError(err.message);
+
+        } finally {
+
+            setLoadingTickets(false);
+
+        }
+
+    }
 
     async function fetchUsers() {
 
@@ -73,54 +99,54 @@ function App() {
         }
     }
 
-  async function fetchAdmins() {
+    async function fetchAdmins() {
 
-      try {
+        try {
 
-          const data = await AuthenticationService.getAdmins()
-          setAdmins(data)
+            const data = await AuthenticationService.getAdmins()
+            setAdmins(data)
 
-      } catch (err) {
+        } catch (err) {
 
-          setError(err.message)
+            setError(err.message)
 
-      }
+        }
 
-  }
+    }
 
-  async function assignWorker(ticketId, workerId) {
+    async function assignWorker(ticketId, workerId) {
 
-      if (!workerId) return
+        if (!workerId) return
 
-      await TicketService.assignWorker(ticketId, workerId)
-      fetchTickets()
+        await TicketService.assignWorker(ticketId, workerId)
+        fetchTickets()
 
-  }
+    }
 
-  async function markCompleted(ticketId) {
+    async function markCompleted(ticketId) {
 
-      await TicketService.markComplete(ticketId)
+        await TicketService.markComplete(ticketId)
 
-      fetchTickets()
+        fetchTickets()
 
-  }
+    }
 
-  async function handleLogout() {
+    async function handleLogout() {
 
-      setAdmin(null);
-      setTickets([]);
-      setAdmins([])
-      setUsername('');
-      setPassword('');
+        setAdmin(null);
+        setTickets([]);
+        setAdmins([])
+        setUsername('');
+        setPassword('');
 
-  }
+    }
 
     async function updateUserRole(userId, role) {
 
         await fetch(`${API_URL}/admin/users/${userId}/role`, {
 
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             credentials: "include",
             body: JSON.stringify(role),
 
@@ -128,7 +154,7 @@ function App() {
 
         setUsers(prev =>
             prev.map(u =>
-                u.id === userId ? { ...u, role } : u
+                u.id === userId ? {...u, role} : u
             )
         )
 
@@ -136,17 +162,51 @@ function App() {
 
     }
 
-  useEffect(() => {
+    async function deleteUser(userId) {
 
-      if (admin) {
+        setError("")
 
-          fetchTickets()
-          fetchAdmins()
-          fetchUsers()
+        const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+            method: "DELETE",
+            credentials: "include",
+        })
 
-      }
+        if (!res.ok) {
+            setError("Failed to delete user")
+            return
+        }
 
-  }, [admin]);
+        setUsers(prev => prev.filter(u => u.id !== userId))
+        await fetchTickets()
+        await fetchAdmins()
+
+    }
+
+    useEffect(() => {
+
+        if (admin) {
+
+            fetchTickets()
+            fetchAdmins()
+            fetchUsers()
+
+        }
+
+    }, [admin]);
+
+    useEffect(() => {
+        async function checkSession() {
+            try {
+                const user = await AuthenticationService.getMe()
+                setUser(user)
+                setView('dashboard')
+            } catch {
+                setView('login')
+            }
+        }
+
+        checkSession()
+    }, [])
 
     if (admin) {
         return (
@@ -195,8 +255,8 @@ function App() {
                                         <td>{ticket.status}</td>
                                         <td>{ticket.user ? ticket.user.username : "-"}</td>
                                         <td>{ticket.worker ? ticket.worker.username : "Unassigned"}</td>
-                                        <td>{ticket.timeSubmitted ? ticket.timeSubmitted : "-"}</td>
-                                        <td>{ticket.timeCompleted ? ticket.timeCompleted : "-"}</td>
+                                        <td>{formatTicketTime(ticket.timeSubmitted)}</td>
+                                        <td>{ticket.timeCompleted ? formatTicketTime(ticket.timeCompleted) : "Incomplete"}</td>
                                         <td>
                                             <select
                                                 value={ticket.worker?.id || ""}
@@ -232,13 +292,14 @@ function App() {
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Role</th>
+                            <th>Actions</th>
                         </tr>
                         </thead>
 
                         <tbody>
                         {users.length === 0 ? (
                             <tr>
-                                <td colSpan="5">No users found.</td>
+                                <td colSpan="6">No users found.</td>
                             </tr>
                         ) : (
                             users.map((u) => (
@@ -256,6 +317,15 @@ function App() {
                                             <option value="USER">USER</option>
                                             <option value="ADMIN">ADMIN</option>
                                         </select>
+                                    </td>
+                                    <td>
+                                        <button
+                                            type="button"
+                                            onClick={() => deleteUser(u.id)}
+                                            disabled={u.id === admin.id}
+                                        >
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                             ))
@@ -276,40 +346,41 @@ function App() {
 
     }
 
-  return (
-      <main className="login-page">
-        <form className="login-form" onSubmit={handleLogin}>
-          <h1>Admin Login</h1>
+    return (
+        <main className="login-page">
+            <form className="login-form" onSubmit={handleLogin}>
+                <h1>Admin Login</h1>
 
-          <label>
-            Username
-            <input
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                autoComplete="username"
-                required
-            />
-          </label>
+                <label>
+                    Username
+                    <input
+                        value={username}
+                        onChange={(event) => setUsername(event.target.value)}
+                        autoComplete="username"
+                        required
+                    />
+                </label>
+                <br/>
+                <label>
+                    Password
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        autoComplete="current-password"
+                        required
+                    />
+                </label>
+                <br/>
 
-          <label>
-            Password
-            <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                required
-            />
-          </label>
+                {error && <p className="login-error">{error}</p>}
 
-          {error && <p className="login-error">{error}</p>}
-
-          <button type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
-      </main>
-  )
+                <button type="submit" disabled={loading}>
+                    {loading ? 'Signing in...' : 'Sign in'}
+                </button>
+            </form>
+        </main>
+    )
 }
 
 export default App
